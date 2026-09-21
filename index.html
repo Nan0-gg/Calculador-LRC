@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cálculo LRC RBM</title>
+
+    <link rel="icon" type="image/png" href="Logo.png">
+    <style>
+        :root {
+            --azul-redeban: #004B87;
+            --azul-oscuro: #123B5D;
+            --rojo-redeban: #E30613;
+            --azul-claro: #EAF3F9;
+            --gris-fondo: #F5F7FA;
+            --gris-texto: #5F6B76;
+            --blanco: #FFFFFF;
+            --borde: #D8E0E7;
+            --verde: #168A5B;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            font-family: Arial, Helvetica, sans-serif;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #F7F9FC 0%,
+                    #EEF5FA 100%
+                );
+
+            color: var(--azul-oscuro);
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 30px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1250px;
+        }
+
+        /* =========================
+           ENCABEZADO
+        ========================= */
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .header h1 {
+            margin: 0;
+
+            font-size: 38px;
+            font-weight: 700;
+
+            color: var(--azul-oscuro);
+
+            letter-spacing: 1px;
+        }
+
+        .header h1 span {
+            color: var(--rojo-redeban);
+        }
+
+        .header p {
+            margin: 8px 0 0;
+
+            color: var(--gris-texto);
+
+            font-size: 15px;
+        }
+
+        /* =========================
+           CONTENEDORES
+        ========================= */
+
+        .workspace {
+            display: grid;
+
+            grid-template-columns: 1fr 1fr;
+
+            gap: 30px;
+        }
+
+        .panel {
+            position: relative;
+
+            background: var(--blanco);
+
+            border: 2px solid var(--azul-oscuro);
+
+            border-radius: 35px;
+
+            min-height: 430px;
+
+            padding: 65px 30px 30px;
+
+            box-shadow:
+                0 12px 35px rgba(18, 59, 93, 0.10);
+
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            position: absolute;
+
+            top: 22px;
+            left: 30px;
+
+            font-size: 18px;
+            font-weight: 700;
+
+            color: var(--azul-oscuro);
+        }
+
+        /* =========================
+           TEXTAREA
+        ========================= */
+
+        .textarea-container {
+            position: relative;
+
+            flex: 1;
+
+            display: flex;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+
+            min-height: 280px;
+
+            resize: none;
+
+            border: none;
+            outline: none;
+
+            background: transparent;
+
+            color: #172B3A;
+
+            font-family:
+                "Courier New",
+                Courier,
+                monospace;
+
+            font-size: 14px;
+
+            line-height: 1.7;
+
+            padding: 10px 5px;
+        }
+
+        textarea::placeholder {
+            color: #71808C;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            font-size: 15px;
+
+            font-style: italic;
+
+            line-height: 1.4;
+        }
+
+        /* =========================
+           ICONOS
+        ========================= */
+
+        .icon-button {
+            position: absolute;
+
+            top: -50px;
+            right: 0;
+
+            width: 42px;
+            height: 42px;
+
+            border: none;
+
+            background: transparent;
+
+            cursor: pointer;
+
+            display: none;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 12px;
+
+            transition:
+                background-color 0.2s,
+                transform 0.2s;
+        }
+
+        .icon-button:hover {
+            background-color: var(--azul-claro);
+
+            transform: scale(1.05);
+        }
+
+        .icon-button svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .copy-icon {
+            transform: translate(-30px, 65px);
+        }   
+
+        /* =========================
+           BOTÓN CALCULAR
+        ========================= */
+
+        .action-container {
+            display: flex;
+
+            justify-content: center;
+
+            margin-top: 25px;
+        }
+
+        .calculate-button {
+            border: none;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--azul-redeban),
+                    var(--azul-oscuro)
+                );
+
+            color: white;
+
+            padding: 14px 32px;
+
+            border-radius: 12px;
+
+            font-size: 15px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 6px 18px rgba(0, 75, 135, 0.25);
+
+            transition:
+                transform 0.2s,
+                box-shadow 0.2s;
+        }
+
+        .calculate-button:hover {
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 9px 22px rgba(0, 75, 135, 0.32);
+        }
+
+        .calculate-button:active {
+            transform: translateY(0);
+        }
+
+        /* =========================
+           RESULTADO
+        ========================= */
+
+        .result-area {
+            flex: 1;
+
+            display: flex;
+            flex-direction: column;
+        }
+
+        .result-textarea {
+            flex: 1;
+
+            min-height: 280px;
+
+            width: 100%;
+
+            resize: none;
+
+            border: none;
+            outline: none;
+
+            background: transparent;
+
+            color: #172B3A;
+
+            font-family:
+                "Courier New",
+                Courier,
+                monospace;
+
+            font-size: 14px;
+
+            line-height: 1.7;
+
+            padding: 10px 5px;
+        }
+
+        .result-placeholder {
+            position: absolute;
+
+            top: 50%;
+            left: 50%;
+
+            transform: translate(-50%, -50%);
+
+            width: 85%;
+
+            text-align: center;
+
+            color: #8795A1;
+
+            font-size: 15px;
+
+            font-style: italic;
+
+            pointer-events: none;
+        }
+
+        /* =========================
+           LRC
+        ========================= */
+
+        .lrc-result {
+            display: none;
+
+            margin-top: 15px;
+
+            padding: 12px 18px;
+
+            background: var(--azul-claro);
+
+            border-radius: 12px;
+
+            text-align: center;
+        }
+
+        .lrc-result span {
+            color: var(--gris-texto);
+
+            font-size: 14px;
+        }
+
+        .lrc-value {
+            display: block;
+
+            margin-top: 3px;
+
+            color: var(--rojo-redeban);
+
+            font-family:
+                "Courier New",
+                Courier,
+                monospace;
+
+            font-size: 24px;
+
+            font-weight: 700;
+        }
+
+        /* =========================
+           MENSAJES
+        ========================= */
+
+        .message {
+            display: none;
+
+            margin-top: 18px;
+
+            padding: 12px 15px;
+
+            border-radius: 10px;
+
+            font-size: 14px;
+
+            text-align: center;
+        }
+
+        .message.error {
+            background: #FDEBEC;
+
+            color: #A61B25;
+
+            border: 1px solid #F3BCC1;
+        }
+
+        .message.success {
+            background: #EAF7F1;
+
+            color: #126943;
+
+            border: 1px solid #B9E2CF;
+        }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
+
+        @media (max-width: 850px) {
+
+            body {
+                padding: 20px;
+            }
+
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .panel {
+                min-height: 390px;
+            }
+
+            .header h1 {
+                font-size: 30px;
+            }
+        }
+
+        @media (max-width: 500px) {
+
+            .panel {
+                padding-left: 20px;
+                padding-right: 20px;
+
+                border-radius: 25px;
+            }
+
+            .panel-title {
+                left: 20px;
+            }
+
+            .calculate-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="app">
+
+        <!-- =========================
+             ENCABEZADO
+        ========================== -->
+
+        <header class="header">
+
+            <h1>
+                Cálculo <span>LRC</span>
+            </h1>
+
+            <p>
+                Calculadora de LRC para tramas TEF
+            </p>
+
+        </header>
+
+
+        <!-- =========================
+             ESPACIO DE TRABAJO
+        ========================== -->
+
+        <section class="workspace">
+
+            <!-- =========================
+                 PANEL DE ENTRADA
+            ========================== -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    Trama de entrada...
+                </div>
+
+                <div class="textarea-container">
+
+                    <textarea
+                        id="inputFrame"
+                        spellcheck="false"
+                        autocomplete="off"
+                        placeholder="Pega acá tu trama en Hexa para calcular el LRC..."
+                    ></textarea>
+
+
+                    <!-- BOTÓN LIMPIAR -->
+
+                    <button
+                        id="clearButton"
+                        class="icon-button"
+                        title="Limpiar trama"
+                        aria-label="Limpiar trama"
+                    >
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+
+                            <path d="M3 6h18"></path>
+
+                            <path d="M8 6V4h8v2"></path>
+
+                            <path d="M19 6l-1 14H6L5 6"></path>
+
+                            <path d="M10 11v5"></path>
+
+                            <path d="M14 11v5"></path>
+
+                        </svg>
+
+                    </button>
+
+                </div>
+
+
+                <div class="action-container">
+
+                    <button
+                        id="calculateButton"
+                        class="calculate-button"
+                    >
+                        Calcular LRC
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================
+                 PANEL DE RESULTADO
+            ========================== -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    Resumen con LRC calculado...
+                </div>
+
+
+                <!-- BOTÓN COPIAR -->
+
+                <button
+                    id="copyButton"
+                    class="icon-button"
+                    title="Copiar trama"
+                    aria-label="Copiar trama"
+                >
+
+                    <svg
+                        class="copy-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+
+                        <rect
+                            x="9"
+                            y="9"
+                            width="13"
+                            height="13"
+                            rx="2"
+                            ry="2"
+                        ></rect>
+
+                        <path
+                            d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                        ></path>
+
+                    </svg>
+
+                </button>
+
+
+                <div class="result-area">
+
+                    <textarea
+                        id="resultFrame"
+                        class="result-textarea"
+                        readonly
+                        spellcheck="false"
+                    ></textarea>
+
+
+                    <div
+                        id="resultPlaceholder"
+                        class="result-placeholder"
+                    >
+                        El resultado con el LRC aparecerá automáticamente
+                        después de realizar el cálculo...
+                    </div>
+
+
+                    <div
+                        id="lrcResult"
+                        class="lrc-result"
+                    >
+
+                        <span>
+                            LRC calculado
+                        </span>
+
+                        <strong
+                            id="lrcValue"
+                            class="lrc-value"
+                        >
+                            --
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- MENSAJES -->
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+    </main>
+
+
+    <!-- JAVASCRIPT -->
+
+    <script src="script.js"></script>
+
+</body>
+</html>
